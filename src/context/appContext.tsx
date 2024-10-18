@@ -1,6 +1,9 @@
 import {createContext} from "react"
 
-const AppRepo = createContext({})
+interface CurrentAppContext {
+    appContext: any | null;
+    setAppContext: Function | null;
+}
 
-
+const AppRepo = createContext<CurrentAppContext | {}>({})
 export {AppRepo}

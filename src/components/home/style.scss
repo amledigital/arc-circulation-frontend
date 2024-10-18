@@ -1,0 +1,44 @@
+/* Styles for the table with default appearance */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+td {
+  text-align: left;
+  width: 19.8%;
+  &:first-of-type {
+    width: 1%;
+  }
+}
+
+thead > tr {
+    background-color: #000;
+    color: #fff;
+}
+
+/* Remove default styles for the first ul list */
+.article-list {
+  list-style: none;
+}
+.article-list ul:first-child {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.article-list ul:first-child li {
+    margin-bottom: 4px;
+}
+
+input[type="checkbox"] {
+  cursor: pointer;
+}
+
