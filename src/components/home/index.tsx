@@ -2,10 +2,10 @@ import {  useEffect, useMemo,useRef } from "react"
 import {useAppRepo} from "../../hooks/useAppProvider.tsx"
 import "./style.scss";
 
-const PROD_BASE_URL = "https://www.9and10news.com"
-const DEV_BASE_URL = "https://910.ledigital.dev"
-const PROD_EDIT_URL_BASE = "https://910mediagroup.arcpublishing.com/composer/edit/"
-const DEV_EDIT_URL_BASE = "https://sandbox.910mediagroup.arcpublishing.com/composer/edit/"
+const PROD_BASE_URL:string = "https://www.9and10news.com"
+const DEV_BASE_URL:string = "https://910.ledigital.dev"
+const PROD_EDIT_URL_BASE:string = "https://910mediagroup.arcpublishing.com/composer/edit/"
+const DEV_EDIT_URL_BASE:string = "https://sandbox.910mediagroup.arcpublishing.com/composer/edit/"
 
 export function RenderCheckbox({_id, toggleState, handleCheckAction}:{_id:string,toggleState:boolean,handleCheckAction:any}) {
     return (
@@ -103,7 +103,10 @@ export const Home = function() {
             }
         }
         fetchData([...(appState?.articles?.length ? appState.articles : [])],appState?.next ?? 0)
-        return () => {}
+        return () => {
+
+            }
+        
     }, [appState?.sectionID, appState?.fetchMore])
     const handleOnClick = (e) => {
         setAppState(prevState => ({
