@@ -153,6 +153,7 @@ export const Home = function() {
                 sectionID: e.target.value
             }
         })
+        updateFilters('articleID', e?.target?.value)
     }
     const handleSubmit = (e:React.FormEvent) => {
         e.preventDefault()
@@ -165,11 +166,10 @@ export const Home = function() {
             }
             return acc
         },[]).map(el => (el.value))
-        console.log(preparedIDs)
 
-        navigate({to: "/update-circulation", search: () => ({
-            _id: preparedIDs
-        })})
+        navigate({to: "/update-circulation", search: {
+            _ids: preparedIDs
+        }})
 
     }
 
