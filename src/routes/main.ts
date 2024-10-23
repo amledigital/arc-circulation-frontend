@@ -1,5 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
+import {Main} from "../components/main"
 
 export const Route = createFileRoute('/main')({
-  component: () => <div>Hello /main!</div>,
-})
+    loader: () => ("Hello"),
+  component: Main
+  })

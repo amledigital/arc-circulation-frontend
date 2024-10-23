@@ -1,5 +1,9 @@
-import {  useEffect, useMemo,useRef } from "react"
+import {  SetStateAction, useEffect, useMemo,useRef } from "react"
+import {Navigate, redirect, useNavigate} from "@tanstack/react-router"
 import {useAppRepo} from "../../hooks/useAppProvider.tsx"
+import {Route} from "../../routes/index.lazy.tsx"
+import {HomeSearchParams} from "../../routes/index.lazy.tsx"
+import {RenderCheckbox} from "./renderCheckbox.tsx"
 import "./style.scss";
 
 const PROD_BASE_URL:string = "https://www.9and10news.com"
@@ -7,37 +11,51 @@ const DEV_BASE_URL:string = "https://910.ledigital.dev"
 const PROD_EDIT_URL_BASE:string = "https://910mediagroup.arcpublishing.com/composer/edit/"
 const DEV_EDIT_URL_BASE:string = "https://sandbox.910mediagroup.arcpublishing.com/composer/edit/"
 
-export function RenderCheckbox({_id, toggleState, handleCheckAction}:{_id:string,toggleState:boolean,handleCheckAction:any}) {
-    return (
-    <input type="checkbox" data-id={_id} checked={toggleState} name={`ansId`} value={_id} onChange={handleCheckAction} />
-    )
-}
 
-export function ConstructLink({_id, title,url}:{_id:string, title:string,url:string}) {
-    let base = import.meta.env.PROD ? 'https://www.9and10news.com' : 'https://910.ledigital.dev'
-        let editBase = import.meta.env.PROD ? 'https://910mediagroup.arcpublishing.com/composer/edit/' : 'https://sandbox.910mediagroup.arcpublishing.com/composer/edit/'
-    return (
-        <>
-        <a href={base.concat(url)} title={title} aria-label={title} target="_blank" rel="nofollow noreferrer noopener">{title}</a> &nbsp;&mdash;&nbsp;
-        <a href={editBase + _id } title={"Edit: "+title} aria-label={"Edit: "+title} rel="nofollow noreferrer noopener" target="_blank">Edit</a>
-        </>
-    )
-}
 
 export const Home = function() {
     const {appState, setAppState}:any = useAppRepo()
+    const inputRef = useRef(null)
+    let navigate = useNavigate({from: Route.fullPath})
+
+    const {sectionID ="", from = 0, size = 10}:HomeSearchParams= Route.useSearch()
+        
+    const updateFilters = (name: keyof HomeSearchParams, value: unknown) => {
+        navigate({search: (prev) => ({...prev, [name]: value})})
+    }
+
+    useEffect(()=>{
+        //console.log(appState)
+    },[appState])
+
+
     useEffect(() => {
         setAppState(prevState => ({
             ...prevState,
             // this has to be initalized or else you'll get an uncontrolled input checkbox
             checkState: {},
+            sectionID: sectionID ? sectionID : "",
+            next: from || 0,
+            isFull : false,
+            size: size || 10,
         }))
     },[])
 
-    useEffect(()=>{
-    },[appState])
+    useEffect(function(){
+        setAppState(prev => ({
+            ...prev,
+            fetchMore: true,
+        }))
+    },[])
 
-    const inputRef = useRef(null)
+    useEffect(() => {
+        setAppState(prevState => ({
+            ...prevState,
+            isFull: appState?.articles?.length > 0 && appState?.articles?.length === appState?.totalCount
+        }))
+    }, [appState?.articles, appState?.isFull])
+
+    
     useEffect(() =>{
         if (!inputRef.current) return 
         async function getToken() {
@@ -63,6 +81,7 @@ export const Home = function() {
         if (!appState?.token) return
         if (!appState.sectionID) return
         if (appState?.next > 0 && !appState?.fetchMore) return 
+            if (appState?.isFull) return
         async function fetchData(content_elements:any,from:number) {
             try {
                 let baseURL = "/api/v1/arc-section/910news"
@@ -80,76 +99,100 @@ export const Home = function() {
             })
             const data = await resp.json()
 
-            if (data.next) {
-                setAppState(prevState => ({
-                    ...prevState,
-                    next: data.next
-                }))
-                //return fetchData([...content_elements, ...data?.articles?.content_elements], data?.next)
-            } else {
-                setAppState(prevState => ({
-                    ...prevState,
-                    next: 0,
-                }))
-            }
-        setAppState(prevState => ({
+
+            setAppState(prevState => ({
             ...prevState,
+            totalCount: data?.articles?.count || null,
             articles: [...(data?.articles?.content_elements.length ? data.articles.content_elements : []),...content_elements],
             articleCount: [...(data?.articles?.content_elements.length ? data.articles.content_elements : []),...content_elements].length,
+            isFull: appState?.articles?.length === data?.articles?.count,
             fetchMore: false,
+            next: data?.next || null,
         }))
+        updateFilters("from", appState?.next)
+
             } catch (err) {
                 console.error(err?.message)
             }
         }
-        fetchData([...(appState?.articles?.length ? appState.articles : [])],appState?.next ?? 0)
+
+            // either continue building article list, or start fresh
+        
+            if (appState?.articles?.length > 0 && appState?.articles?.length === appState?.totalCount) return 
+
+        fetchData([...(appState?.articles?.length ? appState.articles : [])],appState?.next || from || 0)
+
+
         return () => {
 
             }
         
     }, [appState?.sectionID, appState?.fetchMore])
     const handleOnClick = (e) => {
+        if (appState?.articles?.length === appState?.totalCount) return 
         setAppState(prevState => ({
             ...prevState,
             fetchMore: true,
         }))
     }
-    const handleInput = (e) => {
 
+
+    const handleInput = (e:React.FormEvent) => {
         // reset everything except sectionID
+        //updateFilters("sectionID", e.target.value)
         setAppState(prevState => {
             return {
                 ...prevState,
-                articleCount: 0,
-                fetchMore: false,
                 articles: [],
+                totalCount: 0,
+                isFull: false,
+                size: 10,
+                checkState: {},
                 next: 0,
+                fetchMore: false,
                 sectionID: e.target.value
             }
         })
     }
-    const handleSubmit = (e) => {
+    const handleSubmit = (e:React.FormEvent) => {
         e.preventDefault()
+
+        // could have just used filter, but whatever
+
+        let preparedIDs = Array.from(e.target.ansId).reduce<any[]>((acc,curr) => {
+            if (curr.checked<Boolean>) {
+                return acc.concat([curr])
+            }
+            return acc
+        },[]).map(el => (el.value))
+        console.log(preparedIDs)
+
+        navigate({to: "/update-circulation", search: () => ({
+            _id: preparedIDs
+        })})
+
     }
 
-    const handleCheckbox = (e) => {
-        setAppState(prevState => ({
+
+    const handleCheckbox = (e:EventTarget) => {
+        setAppState((prevState) => ({
             ...prevState,
             checkState: {
                 ...prevState?.checkState,
-                [e.target.getAttribute('data-id')]: e.target.checked
+                [e.target.getAttribute('data-id')]: e.target?.checked
             }
         }))
     }
     return (
         <>
         <form action="" onSubmit={handleSubmit}>
-        <label htmlFor="sectionID">Arc Section ID: <input type="text" value={appState.sectionID} onChange={handleInput} /></label>
-        <input type="submit" value="submit" ref={inputRef} />
+        <label htmlFor="sectionID">Arc Section ID: <input type="text"  value={appState?.sectionID}  onChange={handleInput} /></label>
         </form>
-        {appState?.articleCount ? <p>{appState?.articleCount}</p> : null}
-        {appState?.next > 0 ? <button onClick={handleOnClick}>Fetch More Articles</button> : null}
-        <form method="PUT" action="#" className="article-list">
+        <label htmlFor="size">Size: <input type="number" name="count" id="count" value={10}  onChange={(e) => updateFilters("size", parseInt(e.target.value))}/>  </label>
+        {appState?.next > 0 ? <><br /><button onClick={handleOnClick}>Fetch More Articles</button></> : null}
+        {appState?.articleCount ? <p>Total Articles: {appState?.articleCount}</p> : null}
+        <form method="PUT" action="#" className="article-list" onSubmit={handleSubmit}>
+        <input type="submit" value="submit" ref={inputRef} id="sectionForm" />
                 <table>
                 <thead>
                 <tr>

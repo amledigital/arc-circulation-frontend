@@ -17,9 +17,17 @@ import { Route as MainImport } from './routes/main'
 
 // Create Virtual Routes
 
+const UpdateCirculationLazyImport = createFileRoute('/update-circulation')()
 const IndexLazyImport = createFileRoute('/')()
 
 // Create/Update Routes
+
+const UpdateCirculationLazyRoute = UpdateCirculationLazyImport.update({
+  path: '/update-circulation',
+  getParentRoute: () => rootRoute,
+} as any).lazy(() =>
+  import('./routes/update-circulation.lazy').then((d) => d.Route),
+)
 
 const MainRoute = MainImport.update({
   path: '/main',
@@ -49,6 +57,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainImport
       parentRoute: typeof rootRoute
     }
+    '/update-circulation': {
+      id: '/update-circulation'
+      path: '/update-circulation'
+      fullPath: '/update-circulation'
+      preLoaderRoute: typeof UpdateCirculationLazyImport
+      parentRoute: typeof rootRoute
+    }
   }
 }
 
@@ -57,36 +72,41 @@ declare module '@tanstack/react-router' {
 export interface FileRoutesByFullPath {
   '/': typeof IndexLazyRoute
   '/main': typeof MainRoute
+  '/update-circulation': typeof UpdateCirculationLazyRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexLazyRoute
   '/main': typeof MainRoute
+  '/update-circulation': typeof UpdateCirculationLazyRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexLazyRoute
   '/main': typeof MainRoute
+  '/update-circulation': typeof UpdateCirculationLazyRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/main'
+  fullPaths: '/' | '/main' | '/update-circulation'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/main'
-  id: '__root__' | '/' | '/main'
+  to: '/' | '/main' | '/update-circulation'
+  id: '__root__' | '/' | '/main' | '/update-circulation'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexLazyRoute: typeof IndexLazyRoute
   MainRoute: typeof MainRoute
+  UpdateCirculationLazyRoute: typeof UpdateCirculationLazyRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexLazyRoute: IndexLazyRoute,
   MainRoute: MainRoute,
+  UpdateCirculationLazyRoute: UpdateCirculationLazyRoute,
 }
 
 export const routeTree = rootRoute
@@ -102,14 +122,18 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
-        "/main"
+        "/main",
+        "/update-circulation"
       ]
     },
     "/": {
       "filePath": "index.lazy.tsx"
     },
     "/main": {
-      "filePath": "main.tsx"
+      "filePath": "main.ts"
+    },
+    "/update-circulation": {
+      "filePath": "update-circulation.lazy.tsx"
     }
   }
 }

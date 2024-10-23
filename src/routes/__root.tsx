@@ -1,6 +1,7 @@
 import  * as React from 'react'
 import {useState} from 'react'
 import { Link, Outlet, createRootRoute } from '@tanstack/react-router'
+import { TanStackRouterDevtools } from '@tanstack/router-devtools'
 import { AppRepo } from '../context/appContext'
 
 
@@ -22,12 +23,25 @@ export const Route = createRootRoute({
       <section className="main-nav">
       <div className="main-nav__inner">
       <nav id="mainNav">
-      <Link to="/">Home</Link>
+      <Link 
+      to="/"
+      search={{
+          query: "",
+          from: 0,
+          size: 10,
+          
+      }}
+      >Home</Link>
+      <Link to="/update-circulation">Update Circulation</Link>
+      <Link
+        to="/main">
+        Main</Link>
       </nav>
       </div>
       </section>
       <AppRepo.Provider value={{appState,setAppState}}>
       <Outlet />
+      <TanStackRouterDevtools />
       </AppRepo.Provider>
     </React.Fragment>
   )},
