@@ -22,6 +22,7 @@ export const Home = function() {
             // this has to be initalized or else you'll get an uncontrolled input checkbox
             checkState: {},
         loading: true,
+        fetchMore: true,
         }))
     },[])
 
@@ -76,16 +77,15 @@ export const Home = function() {
                 }
             })
             const data = await resp.json()
-            if (!data.next || data.next === 0) {
-                setAppState(prevState => ({
+                
+            setAppState(prevState => ({
                     ...prevState,
                     content_elements: [...(prevState.content_elements || []), ...(data?.articles?.content_elements || [])],
                     articleCount: [...(prevState.content_elements || []), ...(data?.articles?.content_elements || [])].length,
-                    fetchMore: false,
-                    loading: false,
-                    next: 0,
+                    fetchMore: data?.next > 0,
+                    loading: data?.next > 0,
+                    next: data.next,
                 }))
-            }
 
 
             } catch (err) {
@@ -93,10 +93,9 @@ export const Home = function() {
             }
         }
 
-        if (!appState.fetchMore) return
 
 
-        fetchData(appState.next)
+        {appState.fetchMore && fetchData(appState.next)}
         return () => {
 
             }
