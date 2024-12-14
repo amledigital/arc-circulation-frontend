@@ -21,12 +21,10 @@ export const Home = function() {
             next: 0,
             // this has to be initalized or else you'll get an uncontrolled input checkbox
             checkState: {},
-        loading: true,
         }))
     },[])
 
     useEffect(()=>{
-        //console.log(appState)
     },[appState])
 
     const inputRef = useRef(null)
@@ -50,23 +48,16 @@ export const Home = function() {
         return () => {}
     },[])
 
-    useEffect(() => {
+    useMemo(() => {
        if (!inputRef.current || !appState.token || !appState.sectionID) return
-        if (!appState?.fetchMore) return
-
-            setAppState(prevState => ({
-                ...prevState,
-                loading: true,
-            }))
-            
-            async function fetchData(from:number = 0) {
+        if (appState?.next > 0 && !appState?.fetchMore) return 
+            async function fetchData(content_elements:any=[],from:number=0) {
             try {
                 let baseURL = "/api/v1/arc-section/910news"
                 if (appState?.sectionID) {
                     baseURL += "?sectionID="+encodeURIComponent(appState?.sectionID) || ""
                 }
                 if (from > 0 ) {
-                    console.log(from)
                     baseURL += baseURL.indexOf("?") < 0 ? "?" : "&"
                     baseURL += "from="+encodeURIComponent(from)
                 }
@@ -76,16 +67,18 @@ export const Home = function() {
                 }
             })
             const data = await resp.json()
-            if (!data.next || data.next === 0) {
-                setAppState(prevState => ({
-                    ...prevState,
-                    content_elements: [...(prevState.content_elements || []), ...(data?.articles?.content_elements || [])],
-                    articleCount: [...(prevState.content_elements || []), ...(data?.articles?.content_elements || [])].length,
-                    fetchMore: false,
-                    loading: false,
-                    next: 0,
-                }))
+
+            if (data.next) {
+                return fetchData([...data?.articles?.content_elements],data.next)
             }
+
+            setAppState(prevState =>({
+                ...prevState,
+                next: data.next,
+                content_elements: [...content_elements,data.articles?.content_elements],
+                articleCount: [...content_elements,data.articles.content_elements].length,
+                fetchMore: false,
+            }))
 
 
             } catch (err) {
@@ -93,15 +86,12 @@ export const Home = function() {
             }
         }
 
-        if (!appState.fetchMore) return
-
-
-        fetchData(appState.next)
+        fetchData(appState.content_elements,appState?.next)
         return () => {
 
             }
         
-    }, [appState?.sectionID, appState?.fetchMore,appState.next])
+    }, [appState?.sectionID, appState?.fetchMore])
     const handleOnClick = (e) => {
         setAppState(prevState => ({
             ...prevState,
@@ -116,8 +106,8 @@ export const Home = function() {
                 ...prevState,
                 articleCount: 0,
                 fetchMore: true,
-                next: 0,
                 content_elements: [],
+                next: 0,
                 sectionID: e.target.value
             }
         })
@@ -141,10 +131,9 @@ export const Home = function() {
         <label htmlFor="sectionID">Arc Section ID: <input type="text" value={appState.sectionID} onChange={handleInput} /></label>
         <input type="submit" value="submit" ref={inputRef} />
         </form>
-        {appState.loading && <p>Loading...</p>}
         {appState?.articleCount ? <p>{appState?.articleCount}</p> : null}
         {appState?.next > 0 ? <button onClick={handleOnClick}>Fetch More Articles</button> : null}
-        {!appState.loading && <form method="PUT" action="#" className="article-list">
+        <form method="PUT" action="#" className="article-list">
                 <table>
                 <thead>
                 <tr>
@@ -160,7 +149,7 @@ export const Home = function() {
         {appState?.content_elements?.length ?  appState.content_elements.map((art,idx) => {
             return (
                 <tr key={idx}>
-                <td data-id={art?._id}>{idx+1}<RenderCheckbox _id={art?._id} handleCheckAction={handleCheckbox} toggleState={ appState?.checkState[art?._id] ?? false} /> </td>
+                <td data-id={art?._id}><RenderCheckbox _id={art?._id} handleCheckAction={handleCheckbox} toggleState={ appState?.checkState[art?._id] ?? false} /> </td>
                 <td>{art?._id}</td>
                 <td><a 
                     href={import.meta.env.PROD ? PROD_BASE_URL : DEV_BASE_URL + art?.website_url} 
@@ -191,7 +180,7 @@ export const Home = function() {
                <div className="form-control">
                 <input type="submit" value="Recirculate Checked" />
                </div> 
-        </form>}
+        </form>
         </>
     )
 }
