@@ -22,7 +22,9 @@ export const Home = function() {
             // this has to be initalized or else you'll get an uncontrolled input checkbox
             checkState: {},
         loading: true,
-        fetchMore: true,
+        fetchMore: false,
+        selectAll: false,
+        articleCount: 0,
         }))
     },[])
 
@@ -52,13 +54,9 @@ export const Home = function() {
     },[])
 
     useEffect(() => {
-       if (!inputRef.current || !appState.token || !appState.sectionID) return
-        if (!appState?.fetchMore) return
 
-            setAppState(prevState => ({
-                ...prevState,
-                loading: true,
-            }))
+        if (!appState.fetchMore || !appState.sectionID || !appState.token) return
+
             
             async function fetchData(from:number = 0) {
             try {
@@ -67,7 +65,6 @@ export const Home = function() {
                     baseURL += "?sectionID="+encodeURIComponent(appState?.sectionID) || ""
                 }
                 if (from > 0 ) {
-                    console.log(from)
                     baseURL += baseURL.indexOf("?") < 0 ? "?" : "&"
                     baseURL += "from="+encodeURIComponent(from)
                 }
@@ -95,12 +92,12 @@ export const Home = function() {
 
 
 
-        {appState.fetchMore && fetchData(appState.next)}
+        fetchData(appState.next)
         return () => {
 
             }
         
-    }, [appState?.sectionID, appState?.fetchMore,appState.next])
+    }, [appState?.sectionID, appState?.fetchMore, appState.token])
     const handleOnClick = (e) => {
         setAppState(prevState => ({
             ...prevState,
@@ -116,8 +113,10 @@ export const Home = function() {
                 articleCount: 0,
                 fetchMore: true,
                 next: 0,
+                loading: true,
                 content_elements: [],
-                sectionID: e.target.value
+                sectionID: e.target.value,
+                selectAll: false,
             }
         })
     }
@@ -134,10 +133,17 @@ export const Home = function() {
             }
         }))
     }
+
+    const handleChangeAll = (e) => {
+        setAppState(prevState => ({
+            ...prevState,
+            selectAll: !prevState.selectAll,
+        }))
+    }
     return (
         <>
         <form action="" onSubmit={handleSubmit}>
-        <label htmlFor="sectionID">Arc Section ID: <input type="text" value={appState.sectionID} onChange={handleInput} /></label>
+       <label htmlFor="sectionID">Arc Section ID: <input type="text" value={appState.sectionID} onChange={handleInput} /></label>
         <input type="submit" value="submit" ref={inputRef} />
         </form>
         {appState.loading && <p>Loading...</p>}
@@ -147,7 +153,7 @@ export const Home = function() {
                 <table>
                 <thead>
                 <tr>
-                <td>select</td>
+                <td>select <input type="checkbox" id="selectAll"  onChange={handleChangeAll} checked={appState.selectAll}/></td>
                 <td>_id</td>
                 <td>URL</td>
                 <td>Edit</td>
@@ -159,7 +165,7 @@ export const Home = function() {
         {appState?.content_elements?.length ?  appState.content_elements.map((art,idx) => {
             return (
                 <tr key={idx}>
-                <td data-id={art?._id}>{idx+1}<RenderCheckbox _id={art?._id} handleCheckAction={handleCheckbox} toggleState={ appState?.checkState[art?._id] ?? false} /> </td>
+                <td data-id={art?._id}>{idx+1}<RenderCheckbox _id={art?._id} handleCheckAction={handleCheckbox} toggleState={ appState?.checkState[art?._id] || appState.selectAll || false} /> </td>
                 <td>{art?._id}</td>
                 <td><a 
                     href={import.meta.env.PROD ? PROD_BASE_URL : DEV_BASE_URL + art?.website_url} 
